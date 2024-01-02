@@ -1,73 +1,70 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "sqlite"
-    // NOTE: When using mysql or sqlserver, uncomment the @db.Text annotations in model Account below
-    // Further reading:
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
-    url      = env("DATABASE_URL")
-}
-
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-
-    createdBy   User   @relation(fields: [createdById], references: [id])
-    createdById String
-
-    @@index([name])
-}
-
-// Necessary for Next auth
-model Account {
-    id                String  @id @default(cuid())
-    userId            String
-    type              String
-    provider          String
-    providerAccountId String
-    refresh_token     String? // @db.Text
-    access_token      String? // @db.Text
-    expires_at        Int?
-    token_type        String?
-    scope             String?
-    id_token          String? // @db.Text
-    session_state     String?
-    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    @@unique([provider, providerAccountId])
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Session {
-    id           String   @id @default(cuid())
-    sessionToken String   @unique
-    userId       String
-    expires      DateTime
-    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model User {
-    id            String    @id @default(cuid())
-    name          String?
-    email         String?   @unique
-    emailVerified DateTime?
-    image         String?
-    accounts      Account[]
-    sessions      Session[]
-    posts         Post[]
+  id            String    @id @default(cuid())
+  name          String
+  image         String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String
+  role          Role      @default(USER)
+  sessions      Session[]
+  Booking       Booking[]
 }
 
-model VerificationToken {
-    identifier String
-    token      String   @unique
-    expires    DateTime
+model Location {
+  id                  Int    @id @default(autoincrement())
+  name                String
+  SourceLocation      Flight @relation("Source", fields: [sourceId], references: [id])
+  sourceId            Int
+  DestinationLocation Flight @relation("Destination", fields: [destinationId], references: [id])
+  destinationId       Int
+}
 
-    @@unique([identifier, token])
+model Flight {
+  id          Int        @id @default(autoincrement())
+  name        String
+  Source      Location[] @relation("Source")
+  Destination Location[] @relation("Destination")
+  departure   DateTime
+  arrival     DateTime
+  Seat        Seat[]
+  Booking     Booking[]
+}
+
+model Seat {
+  id     Int    @id @default(autoincrement())
+  name   String
+  Flight Flight @relation(fields: [flightId], references: [id])
+
+  flightId Int
+}
+
+model Booking {
+  id       Int    @id @default(autoincrement())
+  name     String
+  Flight   Flight @relation(fields: [flightId], references: [id])
+  flightId Int
+  User     User   @relation(fields: [userId], references: [id])
+  userId   String
+}
+
+enum Role {
+  ADMIN
+  USER
 }
